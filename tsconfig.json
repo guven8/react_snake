@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": "https://guven8.github.io/react_snake",
     "outDir": "build/dist",
     "module": "esnext",
     "target": "es5",
