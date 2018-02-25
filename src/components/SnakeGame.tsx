@@ -53,9 +53,11 @@ type BoardState = {
   gameOver: boolean;
 };
 
+const getRandomCoords = () => ({ x: random(0, 15), y: random(0, 15) });
+
 const initialState: BoardState = {
   snakeCoords: { x: 0, y: 7 },
-  foodCoords: { x: random(0, 15), y: random(0, 15) },
+  foodCoords: getRandomCoords(),
   speed: 6,
   movingDirection: 'right',
   blockCount: 4,
@@ -124,7 +126,7 @@ export class SnakeGame extends React.Component<{}, BoardState> {
 
   private ateFood = (snakeCoords: coordsType[]) => {
     const foodCoords = (function getNewFoodCoords(coords: coordsType[]) {
-      const newFoodCoords = { x: random(0, 6), y: random(0, 6) };
+      const newFoodCoords = getRandomCoords();
       if (coords.find((coord) => isEqual(coord, newFoodCoords))) {
         return getNewFoodCoords(coords);
       } else {
