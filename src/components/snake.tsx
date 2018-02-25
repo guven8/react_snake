@@ -1,85 +1,83 @@
 import * as React from 'react';
 import '../styles/snake.css';
+import { coordsType } from './SnakeGame';
+import { isEqual, last } from 'lodash';
 
 type SnakeProps = {
   gameRunning: boolean;
-  xPos: number;
-  yPos: number;
-  foodX: number;
-  foodY: number;
-  movingDirection: string;
-  speed: number;
+  coords: coordsType;
+  foodCoords: coordsType;
   blockCount: number;
   collisionDetected: () => void;
-  ateFood: (positions: string[]) => void;
+  ateFood: (coords: coordsType[]) => void;
 };
 
 type SnakeState = {
-  positions: string[];
+  coordsList: coordsType[];
 };
 
 export class Snake extends React.Component<SnakeProps, SnakeState> {
   constructor(props: SnakeProps) {
     super(props);
+    const { x, y } = props.coords;
     this.state = {
-      positions: [`${100 * props.xPos}%, ${100 * props.yPos}%`]
+      coordsList: [{ x, y }]
     };
   }
 
+  shouldComponentUpdate(nextProps: SnakeProps) {
+    return !isEqual(this.props.coords, nextProps.coords);
+  }
+
   componentWillReceiveProps(nextProps: SnakeProps) {
-    if (nextProps.xPos !== this.props.xPos || nextProps.yPos !== this.props.yPos) {
-      this.updatePositions();
+    if (!isEqual(this.props.coords, nextProps.coords)) {
+      this.updateCoordsList(nextProps);
     }
   }
 
-  updatePositions = () => {
-    const { gameRunning, xPos, yPos } = this.props;
+  private updateCoordsList = (props: SnakeProps) => {
+    const { gameRunning, blockCount, coords } = props;
     if (!gameRunning) {
       return;
     }
-    let positions = this.state.positions.slice();
-    positions.push(`${100 * xPos}%, ${100 * yPos}%`);
-    if (positions.length > this.props.blockCount) {
-      positions = positions.slice(positions.length - this.props.blockCount, positions.length);
+    let coordsList = this.state.coordsList.slice();
+    coordsList.push(coords);
+    if (coordsList.length > this.props.blockCount) {
+      coordsList = coordsList.slice(coordsList.length - blockCount, coordsList.length);
     }
+    this.setState({ coordsList });
+    this.checkIfAteFood(coordsList);
+    this.checkForCollision(coordsList);
+  }
 
-    this.checkIfAteFood(positions);
+  private checkIfAteFood = (coords: coordsType[]) => {
+    if (isEqual(last(coords), this.props.foodCoords)) {
+      this.props.ateFood(coords);
+    }
+  }
 
-    if (!this.checkForCollision(positions)) {
-      this.setState({ positions });
-    } else {
+  private checkForCollision = (coords: coordsType[]) => {
+    const headCoords = last(coords);
+    const bodyCoords = coords.slice(0, coords.length - 1);
+    const collisionDetected = bodyCoords.find((bodyCoord) => isEqual(bodyCoord, headCoords));
+    if (collisionDetected) {
       this.props.collisionDetected();
-      // this.setState({ positions: [`${100 * this.props.xPos}%, ${100 * this.props.yPos}%`]});
     }
-  }
-
-  checkIfAteFood = (positions: string[]) => {
-    const leadBlock = positions[positions.length - 1];
-    if (leadBlock === `${this.props.foodX}%, ${this.props.foodY}%`) {
-      this.props.ateFood(positions);
-    }
-  }
-
-  checkForCollision = (positions: string[]) => {
-    const leadBlock = positions[positions.length - 1];
-    const notLead = positions.slice(0, positions.length - 1).filter((p) => !!p);
-    const collisionDetected = notLead.length > 1 && notLead.includes(leadBlock);
-    return collisionDetected;
   }
 
   render() {
     let blocks: JSX.Element[] = [];
     for (let i = 0; i < this.props.blockCount; i++) {
-      blocks.push(
-        <div
-          key={i}
-          className="snake-block"
-          style={{
-            display: !!this.state.positions[i] ? 'block' : 'none',
-            transform: `translate(${this.state.positions[i]})`
-          }}
-        />
-      );
+      if (this.state.coordsList[i]) {
+        const { x, y } = this.state.coordsList[i];
+        blocks.push(
+          <div
+            key={i}
+            className="snake-block"
+            style={{ transform: `translate(${x * 100}%, ${y * 100}%)` }}
+          />
+        );
+      }
     }
     return blocks;
   }
