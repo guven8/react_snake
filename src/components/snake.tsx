@@ -1,7 +1,7 @@
 import * as React from 'react';
 import '../styles/snake.css';
 import { coordsType } from './SnakeGame';
-import { isEqual, last } from 'lodash';
+import { isEqual, last, cloneDeep } from 'lodash';
 
 type SnakeProps = {
   gameRunning: boolean;
@@ -40,14 +40,14 @@ export class Snake extends React.Component<SnakeProps, SnakeState> {
     if (!gameRunning) {
       return;
     }
-    let coordsList = this.state.coordsList.slice();
+    let coordsList = cloneDeep(this.state.coordsList);
     coordsList.push(coords);
     if (coordsList.length > this.props.blockCount) {
       coordsList = coordsList.slice(coordsList.length - blockCount, coordsList.length);
     }
-    this.setState({ coordsList });
     this.checkIfAteFood(coordsList);
     this.checkForCollision(coordsList);
+    this.setState({ coordsList });
   }
 
   private checkIfAteFood = (coords: coordsType[]) => {

@@ -46,10 +46,11 @@ export type coordsType = { x: number; y: number };
 type BoardState = {
   snakeCoords: coordsType;
   foodCoords: coordsType;
+  coordsUpdateCount: number;
+  moveUpdateCount: number;
   speed: number;
   movingDirection: 'right' | 'left' | 'up' | 'down';
   blockCount: number;
-  gameRunning: boolean;
   gameOver: boolean;
 };
 
@@ -58,10 +59,11 @@ const getRandomCoords = () => ({ x: random(0, 15), y: random(0, 15) });
 const initialState: BoardState = {
   snakeCoords: { x: 0, y: 7 },
   foodCoords: getRandomCoords(),
+  coordsUpdateCount: 0,
+  moveUpdateCount: 0,
   speed: 6,
   movingDirection: 'right',
   blockCount: 4,
-  gameRunning: true,
   gameOver: false
 };
 
@@ -81,7 +83,7 @@ export class SnakeGame extends React.Component<{}, BoardState> {
   }
 
   private gameOver = () => {
-    this.setState({ gameRunning: false, gameOver: true });
+    this.setState({ gameOver: true });
   }
 
   private restartGame = () => {
@@ -90,22 +92,17 @@ export class SnakeGame extends React.Component<{}, BoardState> {
   }
 
   private setMovingDirection = () => {
-    return (document.onkeydown = (e) => {
+    return (document.onkeydown = e => {
       if (!keyMappings[e.code]) {
         return;
       }
-      const { direction: newMovingDirection, opposite: newMovesOppositeDirection } = keyMappings[
-        e.code
-      ];
-      if (this.state.movingDirection !== newMovesOppositeDirection) {
-        this.setState({ movingDirection: newMovingDirection });
-      }
-      if (!this.state.gameOver && keyMappings[e.code] === 'pausePlay') {
-        if (this.state.gameRunning) {
-          this.setState({ gameRunning: false });
-        } else {
-          this.setState({ gameRunning: true });
-        }
+      const { coordsUpdateCount, moveUpdateCount } = this.state;
+      const { direction: newMovingDirection, opposite: newOppositeDirection } = keyMappings[e.code];
+      if (
+        this.state.movingDirection !== newOppositeDirection &&
+        moveUpdateCount !== coordsUpdateCount
+      ) {
+        this.setState({ movingDirection: newMovingDirection, moveUpdateCount: coordsUpdateCount });
       }
       if (this.state.gameOver && keyMappings[e.code] === 'restart') {
         this.restartGame();
@@ -114,12 +111,13 @@ export class SnakeGame extends React.Component<{}, BoardState> {
   }
 
   private setSnakeCoords = () => {
-    if (this.state.gameRunning) {
+    if (!this.state.gameOver) {
+      const { coordsUpdateCount } = this.state;
       const { x, y } = Object.keys(keyMappings)
-        .map((key) => keyMappings[key])
-        .find((value) => value.direction === this.state.movingDirection)
+        .map(key => keyMappings[key])
+        .find(value => value.direction === this.state.movingDirection)
         .coords(this.state.snakeCoords.x, this.state.snakeCoords.y);
-      this.setState({ snakeCoords: { x, y } });
+      this.setState({ snakeCoords: { x, y }, coordsUpdateCount: coordsUpdateCount + 1 });
       this.runGame();
     }
   }
@@ -127,7 +125,7 @@ export class SnakeGame extends React.Component<{}, BoardState> {
   private ateFood = (snakeCoords: coordsType[]) => {
     const foodCoords = (function getNewFoodCoords(coords: coordsType[]) {
       const newFoodCoords = getRandomCoords();
-      if (coords.find((coord) => isEqual(coord, newFoodCoords))) {
+      if (coords.find(coord => isEqual(coord, newFoodCoords))) {
         return getNewFoodCoords(coords);
       } else {
         return newFoodCoords;
@@ -151,7 +149,7 @@ export class SnakeGame extends React.Component<{}, BoardState> {
         <div className="board">
           {gridLines}
           <Snake
-            gameRunning={this.state.gameRunning}
+            gameRunning={!this.state.gameOver}
             coords={this.state.snakeCoords}
             foodCoords={this.state.foodCoords}
             blockCount={this.state.blockCount}
